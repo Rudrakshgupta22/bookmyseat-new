@@ -6,16 +6,22 @@ def should_start_email_worker():
     import os
     import sys
 
-    blocked_commands = {'makemigrations', 'migrate', 'collectstatic', 'shell', 'dbshell', 'test'}
+    if os.environ.get('VERCEL') == '1':
+        return False
+
+    blocked_commands = {
+        'makemigrations', 'migrate', 'collectstatic', 'shell', 'dbshell',
+        'test', 'check', 'help', 'version', 'show_urls'
+    }
     current_command = sys.argv[1] if len(sys.argv) > 1 else ''
 
     if current_command in blocked_commands:
         return False
 
     if settings.DEBUG:
-        return os.environ.get('RUN_MAIN') == 'true'
+        return current_command == 'runserver' and os.environ.get('RUN_MAIN') == 'true'
 
-    return True
+    return current_command in {'runserver', 'gunicorn', 'uwsgi', 'daphne', 'hypercorn', 'uvicorn'}
 
 
 class MoviesConfig(AppConfig):
