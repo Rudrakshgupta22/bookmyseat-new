@@ -41,6 +41,7 @@ EMAIL_HOST_PASSWORD=your-app-password
 EMAIL_USE_TLS=True
 IS_VERCEL=True
 ```
+> Note: `ALLOWED_HOSTS` must contain the hostname only, without `https://`. If you include the protocol, Django will reject the request with `Bad Request (400)`.
 
 ### 1.4 Update settings.py for Vercel
 Your `bookmyseat/settings.py` should already be configured for Vercel with:
@@ -109,8 +110,20 @@ Set your production database URL in Vercel environment variables:
 DATABASE_URL=postgresql://user:password@host:port/database
 ```
 
-### 3.3 Run Migrations
-After deployment, run migrations using Vercel functions or database admin tools.
+If you do not have a hosted database yet, the project can temporarily fall back to the checked-in `db.sqlite3` file on Vercel, but this is not recommended for long-term production use.
+
+### 3.3 Run Migrations and Seed Data
+After deployment, run migrations and seed the database:
+
+```bash
+# Run migrations (if needed)
+python manage.py migrate
+
+# Seed the database with your movie data
+python manage.py seed_movies
+```
+
+**Note**: The seeding is now done manually to prevent startup issues. Run this command after your first deployment to populate movies.
 
 ## Step 4: Static Files & Media
 
