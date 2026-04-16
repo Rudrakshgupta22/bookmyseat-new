@@ -26,6 +26,18 @@ A simple Django-based clone of a movie booking app with user authentication, mov
    python manage.py runserver
    ```
 
+## Environment Variables
+
+Set these in your deployment environment or local `.env` file:
+
+- `DJANGO_SECRET_KEY`
+- `DEBUG` (`True` or `False`)
+- `DATABASE_URL` (optional; defaults to local SQLite)
+- `EMAIL_HOST_USER`
+- `EMAIL_HOST_PASSWORD`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PUBLISHABLE_KEY`
+
 ## Notes
 
 - This repository excludes local environment folders and task/implementation document files.
