@@ -27,8 +27,13 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-local-placeholder')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 IS_VERCEL = os.getenv('VERCEL') == '1'
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost,.vercel.app').split(',') if host.strip()]
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost,.vercel.app')
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
+if IS_VERCEL and not any(host.endswith('.vercel.app') or host == '.vercel.app' for host in ALLOWED_HOSTS):
+    ALLOWED_HOSTS.append('.vercel.app')
+
+csrf_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
@@ -130,12 +135,13 @@ elif DEBUG:
         }
     }
 else:
+    # On Vercel serverless deployments, use the checked-in SQLite file when no DATABASE_URL is set.
+    # This preserves the seeded movie data from the repository instead of creating a fresh in-memory DB.
     DATABASES = {
-        'default': dj_database_url.parse(
-            'sqlite:///:memory:',
-            conn_max_age=600,
-            ssl_require=False,
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
 
 # Password validation
