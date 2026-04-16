@@ -10,6 +10,7 @@ venv310/
 .env.*
 ENV/
 env/
+render_env_vars.txt
 
 # Database
 db.sqlite3
