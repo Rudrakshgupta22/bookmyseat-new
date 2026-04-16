@@ -185,6 +185,45 @@ def should_start_email_worker():
     return current_command in {'runserver', 'gunicorn', 'uwsgi', 'daphne', 'hypercorn', 'uvicorn'}
 
 
+def should_run_vercel_startup_tasks():
+    import os
+    import sys
+
+    if os.environ.get('VERCEL') != '1':
+        return False
+
+    blocked_commands = {
+        'makemigrations', 'migrate', 'collectstatic', 'shell', 'dbshell',
+        'test', 'check', 'help', 'version', 'show_urls'
+    }
+    current_command = sys.argv[1] if len(sys.argv) > 1 else ''
+    return current_command not in blocked_commands
+
+
+def run_vercel_startup_tasks():
+    import logging
+    from django.core.management import call_command
+    from django.db import connections
+    from django.db.migrations.executor import MigrationExecutor
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        connection = connections['default']
+        executor = MigrationExecutor(connection)
+        plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        if plan:
+            logger.info('Running pending migrations on Vercel startup.')
+            call_command('migrate', interactive=False, run_syncdb=True)
+    except Exception as exc:
+        logger.warning(f'Skipping Vercel startup migrations: {exc}')
+
+    try:
+        seed_sample_movies()
+    except Exception as exc:
+        logger.warning(f'Failed Vercel startup seeding: {exc}')
+
+
 class MoviesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'movies'
@@ -200,10 +239,5 @@ class MoviesConfig(AppConfig):
 
             start_reservation_cleanup_worker()
 
-        # Temporarily disable auto-seeding to prevent 500 errors
-        # Will seed manually if needed
-        # try:
-        #     seed_sample_movies()
-        # except OperationalError:
-        #     # Database is not ready yet (migrations may still be running)
-        #     pass
+        if should_run_vercel_startup_tasks():
+            run_vercel_startup_tasks()

@@ -127,6 +127,13 @@ if DATABASE_URL:
             ssl_require=True,
         )
     }
+elif IS_VERCEL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/tmp/db.sqlite3',
+        }
+    }
 elif DEBUG:
     DATABASES = {
         'default': {
@@ -135,8 +142,6 @@ elif DEBUG:
         }
     }
 else:
-    # On Vercel serverless deployments, use the checked-in SQLite file when no DATABASE_URL is set.
-    # This preserves the seeded movie data from the repository instead of creating a fresh in-memory DB.
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
