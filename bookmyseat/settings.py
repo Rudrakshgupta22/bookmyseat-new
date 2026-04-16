@@ -25,6 +25,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-local-placeholder')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+IS_VERCEL = os.getenv('VERCEL') == '1'
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.vercel.app']
 
@@ -110,13 +111,30 @@ WSGI_APPLICATION = 'bookmyseat.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600,
-        ssl_require=False,
-    )
-}
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+elif DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            'sqlite:///:memory:',
+            conn_max_age=600,
+            ssl_require=False,
+        )
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
