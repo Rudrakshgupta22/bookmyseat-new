@@ -1,14 +1,34 @@
+import logging
+
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
-from .forms import UserRegisterForm, UserUpdateForm
-from django.shortcuts import render,redirect
-from django.contrib.auth import login,authenticate
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
+
+from .forms import UserRegisterForm, UserUpdateForm
 from movies.models import Booking, BookingBatch, Movie
 from movies.payments import cleanup_expired_payment_holds
 
+logger = logging.getLogger(__name__)
+
 def home(request):
-    movies= Movie.objects.all()
-    return render(request,'home.html',{'movies':movies})
+    """
+    Homepage must never crash if the DB is empty/unavailable.
+    Vercel/serverless + SQLite can throw transient OperationalError on cold starts.
+    """
+    try:
+        # Evaluate immediately so template rendering can't trigger DB work.
+        movies = list(Movie.objects.order_by('-id')[:8])
+    except Exception:
+        logger.exception("Homepage movie query failed.")
+        movies = []
+
+    try:
+        return render(request, 'home.html', {'movies': movies})
+    except Exception:
+        # Last-resort: don't take down "/" due to a template issue.
+        logger.exception("Homepage template render failed.")
+        return render(request, 'home.html', {'movies': []})
 def register(request):
     if request.method == 'POST':
         form=UserRegisterForm(request.POST)
